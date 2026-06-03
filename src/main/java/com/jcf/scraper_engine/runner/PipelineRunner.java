@@ -65,7 +65,24 @@ public class PipelineRunner implements CommandLineRunner {
                 printUrl, state.pagesCrawled.get(), state.maxPages, state.currentDepth, state.status, state.emailsFound.get(), state.scoredEmails.get());
         }
         System.out.println("=================================================================================================================");
-
+        
+        // NEW BLOCK: Isolate Cloudflare/Blocked URLs and append them to a text file
+        try (java.io.PrintWriter blockedWriter = new java.io.PrintWriter(new java.io.FileWriter("cloudflare_blocked.txt", true))) {
+            int blockedCount = 0;
+            for (CrawlService.EngineState state : CrawlService.ACTIVE_ENGINES.values()) {
+                // If it got trapped at the front door (Pages <= 1) and found nothing, it's a firewall block
+                if (state.pagesCrawled.get() <= 1 && state.emailsFound.get() == 0) {
+                    blockedWriter.println(state.domain);
+                    blockedCount++;
+                }
+            }
+            if (blockedCount > 0) {
+                System.out.println("[!] Segregated " + blockedCount + " blocked URLs into 'cloudflare_blocked.txt'");
+            }
+        } catch (Exception e) {
+            System.out.println("[!] Warning: Could not write to cloudflare_blocked.txt");
+        }
+        
         System.out.println("\n[+] PIPELINE COMPLETE. Data securely saved to output_doctors.csv.");
         System.exit(0);
     }
