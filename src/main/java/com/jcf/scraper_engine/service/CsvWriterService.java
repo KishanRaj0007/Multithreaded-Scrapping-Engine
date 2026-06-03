@@ -42,9 +42,14 @@ public class CsvWriterService {
             for (ScrapedContact record : contacts) {
                 // If it's a brand new email not in the CSV...
                 if (existingEmails.putIfAbsent(record.email.toLowerCase(), true) == null) {
-                    String cleanName = record.name != null ? record.name.replace(",", " ") : "";
-                    String cleanPhone = record.phone != null ? record.phone : "";
-                    pw.printf("%s,%s,%s,%d,%s\n", record.email, cleanName, cleanPhone, record.score, record.url);
+                    
+                    // FIX: Strip ALL hidden 'Enter/Return' newlines and commas that break CSV formatting!
+                    String cleanEmail = record.email != null ? record.email.replaceAll("[\\n\\r,]", "") : "";
+                    String cleanName = record.name != null ? record.name.replaceAll("[\\n\\r,]", " ").trim() : "";
+                    String cleanPhone = record.phone != null ? record.phone.replaceAll("[\\n\\r,]", " ").trim() : "";
+                    String cleanUrl = record.url != null ? record.url.replaceAll("[\\n\\r,]", "") : "";
+                    
+                    pw.printf("%s,%s,%s,%d,%s\n", cleanEmail, cleanName, cleanPhone, record.score, cleanUrl);
                     newlySavedCount++;
                 }
             }

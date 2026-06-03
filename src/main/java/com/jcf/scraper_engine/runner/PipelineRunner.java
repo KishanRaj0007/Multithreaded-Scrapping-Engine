@@ -55,6 +55,17 @@ public class PipelineRunner implements CommandLineRunner {
 
         crawlService.startOrchestratedSweep(new HashSet<>(WORKLOAD_QUEUE), maxDepth, maxPages);
 
+        // Corrected: Using state.domain instead of state.targetUrl
+        System.out.println("\n=================================================================================================================");
+        System.out.println("[FINAL CRAWL DASHBOARD] - Sweep Complete");
+        System.out.println("=================================================================================================================");
+        for (CrawlService.EngineState state : CrawlService.ACTIVE_ENGINES.values()) {
+            String printUrl = state.domain.length() > 25 ? state.domain.substring(0, 22) + "..." : state.domain;
+            System.out.printf("[Engine] %-25s | Pages: %4d / %-4d | Depth: %-2d | Status: %-10s | Raw: %-4d | Saved: %d\n", 
+                printUrl, state.pagesCrawled.get(), state.maxPages, state.currentDepth, state.status, state.emailsFound.get(), state.scoredEmails.get());
+        }
+        System.out.println("=================================================================================================================");
+
         System.out.println("\n[+] PIPELINE COMPLETE. Data securely saved to output_doctors.csv.");
         System.exit(0);
     }
