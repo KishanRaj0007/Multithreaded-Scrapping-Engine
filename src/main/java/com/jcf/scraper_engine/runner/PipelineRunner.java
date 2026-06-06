@@ -17,6 +17,10 @@ public class PipelineRunner implements CommandLineRunner {
     private final CrawlService crawlService;
     private final CsvWriterService csvWriterService;
     public static final ConcurrentLinkedQueue<String> WORKLOAD_QUEUE = new ConcurrentLinkedQueue<>();
+    // Global thread-safe tracker for verified Cloudflare blocks
+    public static final java.util.Set<String> CLOUDFLARE_BLOCKED_DOMAINS = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    // Tracker for the exact full URLs to write to the text file
+    public static final java.util.Set<String> CLOUDFLARE_BLOCKED_URLS = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     public PipelineRunner(IntakeService intakeService, CrawlService crawlService, CsvWriterService csvWriterService) {
         this.intakeService = intakeService; this.crawlService = crawlService; this.csvWriterService = csvWriterService;
@@ -66,18 +70,16 @@ public class PipelineRunner implements CommandLineRunner {
         }
         System.out.println("=================================================================================================================");
         
-        // NEW BLOCK: Isolate Cloudflare/Blocked URLs and append them to a text file
+        // NEW BLOCK: Isolate ONLY mathematically proven Cloudflare blocks
         try (java.io.PrintWriter blockedWriter = new java.io.PrintWriter(new java.io.FileWriter("cloudflare_blocked.txt", true))) {
             int blockedCount = 0;
-            for (CrawlService.EngineState state : CrawlService.ACTIVE_ENGINES.values()) {
-                // If it got trapped at the front door (Pages <= 1) and found nothing, it's a firewall block
-                if (state.pagesCrawled.get() <= 1 && state.emailsFound.get() == 0) {
-                    blockedWriter.println(state.domain);
-                    blockedCount++;
-                }
+            // FIX: Loop through the exact URLs, not just the domains!
+            for (String blockedUrl : CLOUDFLARE_BLOCKED_URLS) {
+                blockedWriter.println(blockedUrl);
+                blockedCount++;
             }
             if (blockedCount > 0) {
-                System.out.println("[!] Segregated " + blockedCount + " blocked URLs into 'cloudflare_blocked.txt'");
+                System.out.println("[!] Segregated " + blockedCount + " VERIFIED Cloudflare URLs into 'cloudflare_blocked.txt'");
             }
         } catch (Exception e) {
             System.out.println("[!] Warning: Could not write to cloudflare_blocked.txt");

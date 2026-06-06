@@ -124,20 +124,38 @@ public class CrawlService {
             state.visited.add(url);
             state.currentDepth = Math.max(state.currentDepth, currentDepth);
 
-            String rawPayload;
+            String rawPayload = null;
             Document doc = null;
             String pageText = "";
 
-            if (url.toLowerCase().endsWith(".pdf")) {
-                rawPayload = extractionService.extractPdfLane(url);
-                pageText = rawPayload != null ? rawPayload : "";
-            } else {
-                rawPayload = extractionService.universalVacuum(url);
-                if (rawPayload != null) {
-                    doc = Jsoup.parse(rawPayload, url);
-                    pageText = doc.text();
+            // --- START 3-STRIKE RETRY SHIELD ---
+            for (int attempt = 1; attempt <= 3; attempt++) {
+                try {
+                    if (url.toLowerCase().endsWith(".pdf")) {
+                        rawPayload = extractionService.extractPdfLane(url);
+                        pageText = rawPayload != null ? rawPayload : "";
+                    } else {
+                        rawPayload = extractionService.universalVacuum(url);
+                        if (rawPayload != null && !rawPayload.isEmpty()) {
+                            doc = Jsoup.parse(rawPayload, url);
+                            pageText = doc.text();
+                        }
+                    }
+
+                    // If we successfully pulled data, break out of the retry loop immediately
+                    if (rawPayload != null && !rawPayload.isEmpty()) {
+                        break;
+                    }
+                } catch (Exception e) {
+                    // Catch unexpected internal extraction exceptions
+                }
+
+                // If we reach here, the payload was null/empty (Network Drop)
+                if (attempt < 3) {
+                    try { Thread.sleep(3000); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); break; }
                 }
             }
+            // --- END 3-STRIKE RETRY SHIELD ---
 
             if (rawPayload == null || rawPayload.isEmpty()) return;
 

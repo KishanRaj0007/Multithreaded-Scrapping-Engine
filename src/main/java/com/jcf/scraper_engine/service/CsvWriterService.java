@@ -27,7 +27,7 @@ public class CsvWriterService {
             } catch (IOException e) {}
         } else {
             try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
-                pw.println("Email,Name,Phone,Score,Source_Url");
+                // pw.println("Email,Name,Phone,Score,Source_Url");
             } catch (IOException e) {}
         }
         initialized = true;

@@ -29,5 +29,9 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
+# Scraper Output Files
+output_doctors.csv
+cloudflare_blocked.txt
+
 ### VS Code ###
 .vscode/
